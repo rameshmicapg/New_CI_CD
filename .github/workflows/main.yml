@@ -1,0 +1,72 @@
+Build  only
+name: iOS CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      # 1. Checkout source
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Select Xcode version
+      - name: Select Xcode version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.4"
+
+      # 3. Cache CocoaPods
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/CocoaPods
+            kompis/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('CI_CDDemo/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      # 4. Install CocoaPods
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods --no-document
+          pod install --project-directory=CI_CDDemo
+
+      # 5. Install iOS Simulator runtime
+      - name: Install iOS Simulator runtime (iOS)
+        run: |
+          sudo /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild \
+            -downloadPlatform iOS
+
+      # 6. List available simulators
+      - name: List simulators
+        run: xcrun simctl list
+
+      # 7. Build only (NO TESTS)
+      - name: Build iOS project
+        run: |
+          xcodebuild clean build \
+            -workspace CI_CDDemo/CI_CDDemo.xcworkspace \
+            -scheme CI_CDDemo \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -UseModernBuildSystem=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CLANG_INDEX_STORE_ENABLE=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            EXCLUDED_ARCHS="arm64 arm64e" \
+            EXCLUDED_ARCHS__EFFECTIVE_PLATFORM_SUFFIX_simulator="arm64 arm64e" \
+            ONLY_ACTIVE_ARCH=YES
+
+      # 8. Skip Tests (no test action configured)
+      - name: Skip tests
+        run: echo "kompis_MA scheme has no tests → skipping test stage."
