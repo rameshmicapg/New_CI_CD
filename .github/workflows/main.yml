@@ -1,11 +1,10 @@
-Build  only
-name: iOS CI
+name: iOS CI (Build Only)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -29,7 +28,7 @@ jobs:
         with:
           path: |
             ~/Library/Caches/CocoaPods
-            kompis/Pods
+            CI_CDDemo/Pods
           key: ${{ runner.os }}-pods-${{ hashFiles('CI_CDDemo/Podfile.lock') }}
           restore-keys: |
             ${{ runner.os }}-pods-
@@ -40,17 +39,11 @@ jobs:
           sudo gem install cocoapods --no-document
           pod install --project-directory=CI_CDDemo
 
-      # 5. Install iOS Simulator runtime
-      - name: Install iOS Simulator runtime (iOS)
-        run: |
-          sudo /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild \
-            -downloadPlatform iOS
-
-      # 6. List available simulators
+      # 5. List available simulators
       - name: List simulators
         run: xcrun simctl list
 
-      # 7. Build only (NO TESTS)
+      # 6. Build only (NO TESTS)
       - name: Build iOS project
         run: |
           xcodebuild clean build \
@@ -58,15 +51,13 @@ jobs:
             -scheme CI_CDDemo \
             -sdk iphonesimulator \
             -destination "platform=iOS Simulator,name=iPhone 16" \
-            -UseModernBuildSystem=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CLANG_INDEX_STORE_ENABLE=NO \
             COMPILER_INDEX_STORE_ENABLE=NO \
-            EXCLUDED_ARCHS="arm64 arm64e" \
-            EXCLUDED_ARCHS__EFFECTIVE_PLATFORM_SUFFIX_simulator="arm64 arm64e" \
             ONLY_ACTIVE_ARCH=YES
 
-      # 8. Skip Tests (no test action configured)
+      # 7. Skip Tests
       - name: Skip tests
-        run: echo "kompis_MA scheme has no tests → skipping test stage."
+        run: echo "Build-only pipeline → tests skipped."
+
